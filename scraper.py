@@ -205,13 +205,15 @@ def scrape_indeed_rss(countries: list[str]) -> list[dict]:
 
     for cc in countries:
         cfg = COUNTRIES[cc]
-        domain = cfg["indeed"]
+        #domain = cfg["indeed"]
+        domain = "www.indeed.com"
         for query in POWER_QUERIES[:3]:
             url = f"https://{domain}/rss?q={requests.utils.quote(query)}&sort=date"
             try:
                 r = requests.get(url, headers=HEADERS, timeout=15)
                 r.raise_for_status()
                 soup = BeautifulSoup(r.content, "xml")
+                soup = BeautifulSoup(r.text, "lxml-xml")
                 items = soup.find_all("item")
                 for item in items[:15]:
                     title = item.find("title")

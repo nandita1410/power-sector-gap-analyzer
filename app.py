@@ -7,6 +7,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE CONFIG
@@ -270,6 +273,26 @@ def skill_category(skill: str) -> str:
         if any(s.lower() == skill.lower() for s in skills):
             return cat
     return "Other"
+def generate_wordcloud(df):
+    # Combine all skills into one text
+            all_skills = []
+            for skills in df["skills"]:
+                all_skills.extend(skills)
+
+            # Convert to frequency dict (better than raw text)
+            skill_freq = {}
+            for skill in all_skills:
+                skill_freq[skill] = skill_freq.get(skill, 0) + 1
+
+            # Generate word cloud
+            wc = WordCloud(
+                width=800,
+                height=400,
+                background_color="#0d1117",
+                colormap="viridis",
+            ).generate_from_frequencies(skill_freq)
+
+            return wc
 
 
 @st.cache_data
@@ -697,10 +720,6 @@ def main():
         default=["critical","high","medium","low"],
     )
 
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📦 Pipeline")
-    st.sidebar.code("python scraper.py\npython analyze.py\nstreamlit run dashboard.py", language="bash")
-
     # ── Filter data
     df_filtered  = df[df["country"].isin(selected_countries)]
     freq_filtered = {cc: f for cc, f in freq.items() if cc in selected_countries}
@@ -713,7 +732,6 @@ def main():
     col_h1, col_h2 = st.columns([3,1])
     with col_h1:
         st.markdown("# ⚡ Power Sector Skill Gap Dashboard")
-        st.caption("India vs global first-world markets Research Platform")
 
     st.markdown("---")
 
@@ -721,16 +739,34 @@ def main():
     total_jobs    = len(df_filtered)
     total_skills  = len(global_bm)
     critical_gaps = len(gap_df[gap_df["severity"] == "critical"])
-    missing       = len(gap_df[(gap_df["india_pct"] < 5) & (gap_df["global_pct"] > 10)])
+    #missing       = len(gap_df[(gap_df["india_pct"] < 5) & (gap_df["global_pct"] > 10)])
+    missing_df = gap_df[
+    (gap_df["india_pct"] <= 3) &
+    (gap_df["global_pct"] >= 15)
+]
+
+    missing = len(missing_df)
+
+    # Extract skill names
+    missing_skills = missing_df["skill"].tolist()
+
+
+    if missing_skills:
+        preview = ", ".join(missing_skills[:3])
+        more = f" +{len(missing_skills)-3} more" if len(missing_skills) > 3 else ""
+        subtitle = preview + more
+    else:
+        subtitle = "None"
+    
     gap_score     = min(100, max(0, int(
-        100 - (gap_df.head(20)["india_pct"].mean() / max(gap_df.head(20)["global_pct"].mean(), 1)) * 100
-    ))) if not gap_df.empty else 0
+            100 - (gap_df.head(20)["india_pct"].mean() / max(gap_df.head(20)["global_pct"].mean(), 1)) * 100
+        ))) if not gap_df.empty else 0
 
     k1, k2, k3, k4, k5 = st.columns(5)
     k1.metric("Jobs analyzed",    f"{total_jobs:,}",   "across all sources")
     k2.metric("Skills in taxonomy", f"{total_skills}",  "ESCO-mapped")
     k3.metric("Critical gaps",    str(critical_gaps), ">30% gap")
-    k4.metric("Missing in India", str(missing),        "0% vs 10%+ global")
+    k4.metric("Missing in India", str(missing), subtitle)
     k5.metric("Gap index",        f"{gap_score}/100",   "0 = parity · 100 = full divergence")
 
     st.markdown("---")
@@ -748,7 +784,21 @@ def main():
     # TAB 1 — TOP SKILLS
     
     with tab1:
-        st.markdown("### Top skills by country")
+        st.markdown("## ☁️ Skill Word Cloud")
+        st.caption("Visual representation of most frequent skills in job listings")
+        selected_cc = st.selectbox("Select country for word cloud", df["country"].unique())
+
+        df_wc = df[df["country"] == selected_cc]
+
+        wc = generate_wordcloud(df_wc)
+        wc = generate_wordcloud(df_filtered)
+
+        fig, ax = plt.subplots()
+        ax.imshow(wc, interpolation="bilinear")
+        ax.axis("off")
+
+        st.pyplot(fig)
+        st.markdown("## Top skills by country")
         st.caption("Skill frequency as % of job listings · colored by taxonomy category")
 
         if len(selected_countries) == 1:
@@ -767,29 +817,30 @@ def main():
                     )
 
         st.markdown("---")
-        st.markdown("### Skill demand heatmap")
+        st.markdown("## Skill demand heatmap")
         st.caption("Intensity of skill demand per country — darker = higher % of listings")
         if freq_filtered:
             st.plotly_chart(chart_heatmap(freq_filtered), use_container_width=True)
 
         st.markdown("---")
-        st.markdown("### Category breakdown")
+        st.markdown("## Category breakdown")
         col_r, col_b = st.columns([1, 1])
         with col_r:
             st.plotly_chart(chart_radar(freq_filtered, selected_countries), use_container_width=True)
         with col_b:
             st.plotly_chart(chart_category_bar(gap_filtered), use_container_width=True)
 
+        
     # ────────────────────────────────────────────────────────────────────────
     # TAB 2 — CROSS-COUNTRY
 
     with tab2:
-        st.markdown("### Cross-country skill comparison")
+        st.markdown("## Cross-country skill comparison")
         st.caption("Grouped bars showing demand intensity for top global skills by country")
         st.plotly_chart(chart_cross_country(freq_filtered, top_n=min(top_n, 15)), use_container_width=True)
 
         st.markdown("---")
-        st.markdown("### Country profiles")
+        st.markdown("## Country profiles")
         cols = st.columns(len(selected_countries))
         for i, cc in enumerate(selected_countries):
             meta = COUNTRY_META.get(cc, {"name":cc,"flag":"","color":"#ccc"})
@@ -808,7 +859,7 @@ def main():
                     )
 
         st.markdown("---")
-        st.markdown("### Source distribution")
+        st.markdown("## Source distribution")
         src_counts = df_filtered.groupby(["country","source"]).size().reset_index(name="count")
         if not src_counts.empty:
             fig_src = px.bar(
@@ -829,7 +880,7 @@ def main():
     # TAB 3 — SKILL GAP
 
     with tab3:
-        st.markdown("### India vs global skill gap")
+        st.markdown("## India vs global skill gap")
 
         col_gauge, col_insights = st.columns([1, 2])
         with col_gauge:
@@ -850,11 +901,14 @@ def main():
                     f"(−{top_gap['gap']:.0f}% gap).</div>",
                     unsafe_allow_html=True,
                 )
-            missing_skills = gap_filtered[(gap_filtered["india_pct"] < 5) & (gap_filtered["global_pct"] > 10)]
+            missing_skills = gap_filtered[
+    (gap_filtered["global_pct"] - gap_filtered["india_pct"]) > 10
+]
+            #missing_skills = gap_filtered[(gap_filtered["india_pct"] < 5) & (gap_filtered["global_pct"] > 10)]
             if not missing_skills.empty:
                 top_missing = missing_skills.head(4)["skill"].tolist()
                 st.markdown(
-                    f"<div class='insight-box warn'>🟡 <b>{len(missing_skills)} skills virtually absent from Indian listings</b>: "
+                    f"<div class='insight-box warn'>🟡 <b>{len(missing_skills)} Underrepresented Skills from Indian listings</b>: "
                     f"{', '.join(top_missing)} and {len(missing_skills)-4} more.</div>",
                     unsafe_allow_html=True,
                 )
@@ -875,7 +929,7 @@ def main():
         st.plotly_chart(chart_gap_bars(gap_filtered, top_n=min(top_n, 18)), use_container_width=True)
 
         st.markdown("---")
-        st.markdown("### Full gap table")
+        st.markdown("## Full gap table")
 
         def severity_badge(s):
             colors = {"critical":"#F85149","high":"#E3B341","medium":"#58a6ff","low":"#3FB950"}
@@ -901,7 +955,7 @@ def main():
     # TAB 4 — EMERGING TECH
 
     with tab4:
-        st.markdown("### Emerging technology adoption")
+        st.markdown("## Emerging technology adoption")
         st.caption("Frontier skills that define the next generation of power sector roles")
         st.plotly_chart(chart_emerging(freq_filtered), use_container_width=True)
 
@@ -909,8 +963,8 @@ def main():
         col_absent, col_strong = st.columns(2)
 
         with col_absent:
-            st.markdown("**Technologies absent from Indian listings**")
-            absent = gap_df[(gap_df["india_pct"] < 8) & (gap_df["global_pct"] > 8)].head(12)
+            st.markdown("**Technologies Underrepresented from Indian listings**")
+            absent = gap_df[(gap_df["global_pct"] - gap_df["india_pct"]) > 10].head(12)
             for _, row in absent.iterrows():
                 st.markdown(
                     f"<div style='display:flex;justify-content:space-between;align-items:center;"
@@ -926,51 +980,88 @@ def main():
 
         with col_strong:
             st.markdown("**India's relative strengths**")
-            strong = gap_df[gap_df["india_pct"] >= gap_df["global_pct"]].sort_values("india_pct", ascending=False).head(12)
+            strong = gap_df[gap_df["india_pct"] >= gap_df["global_pct"]].sort_values(by="india_pct", ascending=False)
             if strong.empty:
                 st.caption("No clear outperformance areas yet — fetch more data for better signal.")
             for _, row in strong.iterrows():
                 st.markdown(
                     f"<div style='display:flex;justify-content:space-between;align-items:center;"
-                    f"padding:5px 8px;margin-bottom:4px;background:#0d1f0d;border-radius:6px;"
+                    f"padding:6px 10px;margin-bottom:4px;background:#0d1f0d;border-radius:6px;"
                     f"border:1px solid #1a6425;font-size:12px'>"
+
                     f"<span style='color:#c9d1d9'>{row['skill']}</span>"
-                    f"<span style='color:#3fb950;font-weight:600'>{row['india_pct']:.0f}%</span>"
+
+                    f"<div style='display:flex;gap:10px;align-items:center'>"
+                    f"<span style='color:#4C9BE8;font-size:11px'>Global {row['global_pct']:.0f}%</span>"
+                    f"<span style='color:#3fb950;font-weight:600'>India {row['india_pct']:.0f}%</span>"
+                    f"</div>"
+
                     f"</div>",
                     unsafe_allow_html=True,
                 )
+            # strong = gap_df[gap_df["india_pct"] >= gap_df["global_pct"]].sort_values("india_pct", ascending=False).head(12)
+            # if strong.empty:
+            #     st.caption("No clear outperformance areas yet — fetch more data for better signal.")
+            # for _, row in strong.iterrows():
+            #     st.markdown(
+            #         f"<div style='display:flex;justify-content:space-between;align-items:center;"
+            #         f"padding:5px 8px;margin-bottom:4px;background:#0d1f0d;border-radius:6px;"
+            #         f"border:1px solid #1a6425;font-size:12px'>"
+            #         f"<span style='color:#c9d1d9'>{row['skill']}</span>"
+            #         f"<span style='color:#3fb950;font-weight:600'>{row['india_pct']:.0f}%</span>"
+            #         f"</div>",
+            #         unsafe_allow_html=True,
+            #     )
 
         st.markdown("---")
         st.markdown("**5-phase upskilling roadmap for Indian professionals**")
-        phases = [
-            ("Phase 1", "Python & Power Data Analytics", "2–3 months", "#4C9BE8",
-             "Foundational digital skill — immediately hireable globally. Focus: pandas, time-series, SCADA data."),
-            ("Phase 2", "Battery Storage & Energy Management", "2–4 months", "#3FB950",
-             "India's storage market set to 10× by 2030. Skills: BESS sizing, PPA structuring, grid integration."),
-            ("Phase 3", "OT Cybersecurity", "3–4 months", "#E3B341",
-             "0% in Indian listings vs 35%+ in US/UK. High salary premium. Certs: SANS ICS, GICSP."),
-            ("Phase 4", "Digital Twin & IoT", "3–5 months", "#A371F7",
-             "Differentiates for global roles. Entirely absent from Indian market. Tools: Siemens MindSphere, Azure IoT."),
-            ("Phase 5", "Green Hydrogen & Grid Modernization", "4–6 months", "#F85149",
-             "Long-term strategic positioning. Skills: HVDC, FACTS, DERMS, green hydrogen feasibility."),
-        ]
-        for phase, title, dur, color, desc in phases:
+        st.markdown("**Dynamic Upskilling Roadmap (Based on Skill Gaps)**")
+
+        # Top gap skills
+        top_gaps = gap_df.sort_values("gap", ascending=False).head(5)
+
+        for i, row in top_gaps.iterrows():
+            skill = row["skill"]
+            gap = row["gap"]
+            category = row["category"]
+
+            # duration logic
+            duration = (
+                "2–3 months" if gap < 15 else
+                "3–4 months" if gap < 25 else
+                "4–6 months"
+            )
+
+            # color by severity
+            color = (
+                "#3FB950" if gap < 10 else
+                "#E3B341" if gap < 25 else
+                "#F85149"
+            )
+
             st.markdown(
                 f"<div style='display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;"
                 f"background:#161b22;border-radius:8px;border:1px solid #30363d;padding:12px 14px'>"
-                f"<div style='min-width:56px;background:{color}20;border:1px solid {color}60;"
-                f"border-radius:6px;padding:6px;text-align:center;font-size:10px;font-weight:600;color:{color}'>{phase}</div>"
-                f"<div><div style='font-size:13px;font-weight:600;color:#e6edf3'>{title}"
-                f"<span style='font-size:11px;font-weight:400;color:#8b949e;margin-left:8px'>({dur})</span></div>"
-                f"<div style='font-size:12px;color:#8b949e;margin-top:3px'>{desc}</div></div></div>",
+
+                f"<div style='min-width:60px;background:{color}20;border:1px solid {color}60;"
+                f"border-radius:6px;padding:6px;text-align:center;font-size:10px;"
+                f"font-weight:600;color:{color}'>Phase {i+1}</div>"
+
+                f"<div>"
+                f"<div style='font-size:13px;font-weight:600;color:#e6edf3'>{skill}"
+                f"<span style='font-size:11px;color:#8b949e;margin-left:8px'>({duration})</span></div>"
+
+                f"<div style='font-size:12px;color:#8b949e;margin-top:3px'>"
+                f"Category: {category} · Gap: {gap:.0f}% · Focus on learning this skill to match global demand."
+                f"</div></div></div>",
                 unsafe_allow_html=True,
             )
-
+        
     # ────────────────────────────────────────────────────────────────────────
     # TAB 5 — RAW DATA
 
     with tab5:
-        st.markdown("### Job listing dataset")
+        st.markdown("## Job listing dataset")
         st.caption(f"{len(df_filtered)} listings · filtered by selected countries")
 
         display = df_filtered.copy()
@@ -985,7 +1076,7 @@ def main():
         )
 
         st.markdown("---")
-        st.markdown("### Taxonomy reference")
+        st.markdown("## Taxonomy reference")
         for cat, skills in POWER_TAXONOMY.items():
             with st.expander(f"📂 {cat} ({len(skills)} skills)"):
                 st.markdown(

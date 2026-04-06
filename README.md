@@ -15,6 +15,7 @@ Scrape job listings from online platforms across first-world countries (US, UK, 
 
 ## How to Run
 ```bash
+pip install wordcloud
 pip install -r requirements.txt
 python scraper.py --country in us gb au
-python streamlit run app.py
+python -m streamlit run app.py
