@@ -41,6 +41,8 @@ COUNTRIES = {
     "gb": {"name": "United Kingdom","adzuna": "gb",  "indeed": "uk.indeed.com",     "linkedin": "uk"},
     "au": {"name": "Australia",     "adzuna": "au",  "indeed": "au.indeed.com",     "linkedin": "au"},
     "in": {"name": "India",         "adzuna": "in",  "indeed": "in.indeed.com",     "linkedin": "in"},
+    "de": {"name": "Germany",       "adzuna": "de",  "indeed": "de.indeed.com",     "linkedin": "de"},
+    "ca": {"name": "Canada",        "adzuna": "ca",  "indeed": "ca.indeed.com",     "linkedin": "ca"},
 }
 
 POWER_QUERIES = [
@@ -61,9 +63,7 @@ POWER_QUERIES = [
     "energy transition engineer",
     "offshore wind engineer",
     "battery storage engineer",
-    "OT cybersecurity power",
     "digital twin energy",
-    "net zero power sector",
 ]
 
 HEADERS = {
@@ -80,41 +80,50 @@ HEADERS = {
 
 POWER_TAXONOMY = {
     "Traditional Power Engineering": [
-        "power systems","electrical engineering","substation","transformer",
-        "switchgear","protection relay","load flow","short circuit","power factor",
-        "reactive power","HV","LV","MV","11kV","33kV","132kV","400kV","busbar",
-        "circuit breaker","earthing","SCADA","DCS","PLC","HMI","IED","RTU",
-        "metering","energy audit","grid","distribution","transmission","ETAP","PSS/E",
+        "power systems","electrical engineering","substation","transformer","switchgear",
+        "protection relay","short circuit","power factor","reactive power",
+        "busbar","SCADA","DCS","PLC","HMI","RTU","energy audit",
+        "grid","ETAP","PSS/E","power electronics"
     ],
     "Renewables & Energy Transition": [
-        "solar PV","wind energy","wind turbine","battery storage","BESS",
-        "energy storage","lithium ion","offshore wind","onshore wind","rooftop solar",
-        "hybrid energy","microgrid","VPP","virtual power plant","EV charging",
-        "green hydrogen","electrolysis","fuel cell","tidal","geothermal","biomass",
+        "solar PV","wind energy","wind turbine","battery storage","BESS","energy storage","rooftop solar","hybrid energy",
+        "microgrid","VPP","virtual power plant","EV charging","green hydrogen",
+        "electrolysis","geothermal","biomass","renewable energy",
     ],
     "Digital & Analytics": [
-        "data analytics","machine learning","AI","artificial intelligence","IoT",
-        "digital twin","predictive maintenance","big data","python","MATLAB",
-        "power BI","Tableau","cloud","AWS","Azure","GCP","cybersecurity",
-        "OT security","DERMS","energy management system","smart meter","AMI",
-        "edge computing","blockchain","digital transformation",
+        "analytics","data analytics","machine learning","AI","artificial intelligence","IoT",
+        "digital twin","predictive maintenance","bigdata","big data","python","MATLAB",
+        "power BI","Tableau","cloud","AWS","Azure","GCP","cybersecurity","OT security",
+        "DERMS","smart meter","smart meter analytics","smart meter data analytics","edge computing","blockchain","digital transformation",
+        "simulation","data science","weather forecasting",
+		"climate change",
+		"wind speed forecasting",
+		"climate change analysis",
+		"rainfall forecasting",
+		"humidity forecasting",
+		"temperature forecasting","smart meter",
+"agentic ai LLM",
+"smart meter data analytics",
+"smart meter analytics",
+"gen ai",
+"consumption forecasting",
+"energy forecasting",
+"demand forecasting",
+"peak demand forecasting",
+"energy disintegration"
     ],
     "Grid Modernization": [
-        "smart grid","grid modernization","flexibility","demand response",
-        "ancillary services","frequency regulation","voltage regulation",
-        "grid stability","HVDC","FACTS","SVC","STATCOM","power electronics",
-        "inverter","converter","wide area monitoring","PMU","synchrophasor",
+        "smart grid","grid modernization","demand response","ancillary services","grid stability","HVDC",
+        "SVC","STATCOM","PMU","synchrophasor","grid interconnection","grid optimization"
     ],
     "Project & Commercial": [
-        "project management","PMP","EPC","O&M","feasibility study",
-        "financial modelling","PPA","tariff","regulatory","offtake","contract",
-        "procurement","capex","opex","IRR","NPV","due diligence","asset management",
-        "HSE","HSSE","LOTO","permits",
+        "project management","PMP","EPC","O&M","feasibility study","financial modelling",
+        "PPA","procurement","LOTO",
+        "AutoCAD","MS Project",
     ],
     "Sustainability & Policy": [
-        "ESG","carbon footprint","net zero","decarbonization","sustainability",
-        "GHG","emissions","carbon credit","CDP","climate risk","TCFD","policy",
-        "regulatory compliance","RE100","SBTi","just transition","circular economy",
+        "ESG","carbon footprint","decarbonization","sustainability","GHG",
+        "CDP","TCFD","SBTi"
     ],
 }
 
@@ -195,66 +204,66 @@ def scrape_adzuna(countries: list[str], max_per_query: int = 10) -> list[dict]:
 
 # ── Source 2: Indeed RSS ─────────────────────────────────────────────────────
 
-def scrape_indeed_rss(countries: list[str]) -> list[dict]:
-    """
-    Scrapes Indeed's public RSS feeds — no API key required.
-    RSS endpoint: https://{domain}/rss?q={query}&l={location}
-    """
-    jobs = []
-    print("\n[Indeed RSS]")
+# def scrape_indeed_rss(countries: list[str]) -> list[dict]:
+#     """
+#     Scrapes Indeed's public RSS feeds — no API key required.
+#     RSS endpoint: https://{domain}/rss?q={query}&l={location}
+#     """
+#     jobs = []
+#     print("\n[Indeed RSS]")
 
-    for cc in countries:
-        cfg = COUNTRIES[cc]
-        #domain = cfg["indeed"]
-        domain = "www.indeed.com"
-        for query in POWER_QUERIES[:3]:
-            url = f"https://{domain}/rss?q={requests.utils.quote(query)}&sort=date"
-            try:
-                r = requests.get(url, headers=HEADERS, timeout=15)
-                r.raise_for_status()
-                soup = BeautifulSoup(r.content, "xml")
-                soup = BeautifulSoup(r.text, "lxml-xml")
-                items = soup.find_all("item")
-                for item in items[:15]:
-                    title = item.find("title")
-                    title = title.text.strip() if title else ""
-                    desc_tag = item.find("description")
-                    desc = BeautifulSoup(desc_tag.text, "html.parser").get_text() if desc_tag else ""
-                    link = item.find("link")
-                    link = link.text.strip() if link else ""
-                    pubdate = item.find("pubDate")
-                    pubdate = pubdate.text.strip() if pubdate else ""
-                    # Extract company from title (Indeed format: "Title - Company")
-                    company = ""
-                    if " - " in title:
-                        parts = title.rsplit(" - ", 1)
-                        title = parts[0].strip()
-                        company = parts[1].strip()
-                    jobs.append({
-                        "source":       "indeed_rss",
-                        "country":      cc,
-                        "country_name": cfg["name"],
-                        "title":        title,
-                        "company":      company,
-                        "location":     "",
-                        "salary_min":   None,
-                        "salary_max":   None,
-                        "description":  desc,
-                        "url":          link,
-                        "posted":       pubdate,
-                        "skills":       extract_skills(title + " " + desc),
-                        "query":        query,
-                        "fetched_at":   datetime.utcnow().isoformat(),
-                    })
-                print(f"  {cc.upper()} | '{query}' → {len(items[:15])} jobs")
-                time.sleep(1.0)
-            except requests.RequestException as e:
-                print(f"  {cc.upper()} | '{query}' → ERROR: {e}")
-            except Exception as e:
-                print(f"  {cc.upper()} | '{query}' → PARSE ERROR: {e}")
+#     for cc in countries:
+#         cfg = COUNTRIES[cc]
+#         #domain = cfg["indeed"]
+#         domain = "www.indeed.com"
+#         for query in POWER_QUERIES[:3]:
+#             url = f"https://{domain}/rss?q={requests.utils.quote(query)}&sort=date"
+#             try:
+#                 r = requests.get(url, headers=HEADERS, timeout=15)
+#                 r.raise_for_status()
+#                 soup = BeautifulSoup(r.content, "xml")
+#                 soup = BeautifulSoup(r.text, "lxml-xml")
+#                 items = soup.find_all("item")
+#                 for item in items[:15]:
+#                     title = item.find("title")
+#                     title = title.text.strip() if title else ""
+#                     desc_tag = item.find("description")
+#                     desc = BeautifulSoup(desc_tag.text, "html.parser").get_text() if desc_tag else ""
+#                     link = item.find("link")
+#                     link = link.text.strip() if link else ""
+#                     pubdate = item.find("pubDate")
+#                     pubdate = pubdate.text.strip() if pubdate else ""
+#                     # Extract company from title (Indeed format: "Title - Company")
+#                     company = ""
+#                     if " - " in title:
+#                         parts = title.rsplit(" - ", 1)
+#                         title = parts[0].strip()
+#                         company = parts[1].strip()
+#                     jobs.append({
+#                         "source":       "indeed_rss",
+#                         "country":      cc,
+#                         "country_name": cfg["name"],
+#                         "title":        title,
+#                         "company":      company,
+#                         "location":     "",
+#                         "salary_min":   None,
+#                         "salary_max":   None,
+#                         "description":  desc,
+#                         "url":          link,
+#                         "posted":       pubdate,
+#                         "skills":       extract_skills(title + " " + desc),
+#                         "query":        query,
+#                         "fetched_at":   datetime.utcnow().isoformat(),
+#                     })
+#                 print(f"  {cc.upper()} | '{query}' → {len(items[:15])} jobs")
+#                 time.sleep(1.0)
+#             except requests.RequestException as e:
+#                 print(f"  {cc.upper()} | '{query}' → ERROR: {e}")
+#             except Exception as e:
+#                 print(f"  {cc.upper()} | '{query}' → PARSE ERROR: {e}")
 
-    print(f"  Total: {len(jobs)} jobs from Indeed RSS")
-    return jobs
+#     print(f"  Total: {len(jobs)} jobs from Indeed RSS")
+#     return jobs
 
 
 # ── Source 3: LinkedIn Public Search ────────────────────────────────────────
@@ -273,6 +282,8 @@ def scrape_linkedin(countries: list[str]) -> list[dict]:
         "gb": "United Kingdom",
         "au": "Australia",
         "in": "India",
+        "de": "Germany",
+        "ca": "Canada",
     }
 
     for cc in countries:
@@ -386,9 +397,9 @@ def main():
         print("Fetching Adzuna...")
         all_jobs += scrape_adzuna(args.country)
 
-    if args.source in ("indeed", "all"):
-        print("Fetching Indeed...")
-        all_jobs += scrape_indeed_rss(args.country)
+    # if args.source in ("indeed", "all"):
+    #     print("Fetching Indeed...")
+    #     all_jobs += scrape_indeed_rss(args.country)
 
     if args.source in ("linkedin", "all"):
         print("Fetching LinkedIn...")

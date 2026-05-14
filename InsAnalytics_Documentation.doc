@@ -1,0 +1,145 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            line-height: 1.5;
+            margin: 1in;
+        }
+        h1 {
+            color: #2e74b5;
+            font-size: 24pt;
+        }
+        h2 {
+            color: #2e74b5;
+            font-size: 18pt;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+            margin-top: 24pt;
+        }
+        h3 {
+            color: #1f4d78;
+            font-size: 14pt;
+            margin-top: 18pt;
+        }
+        code {
+            font-family: 'Courier New', monospace;
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>InsAnalytics: Power Sector Skill Gap Analyzer</h1>
+<h2>Executive Summary</h2>
+<p>The <strong>Power Sector Skill Gap Analyzer</strong> is a comprehensive, AI-driven intelligence platform designed to benchmark India's power and energy sector workforce against global standards (US, UK, Australia, EU). </p>
+<p>By ingesting live job market data and processing candidate resumes, the tool identifies critical skill deficits, tracks emerging technology trends, and provides actionable business recommendations. It empowers stakeholders to make data-backed decisions on upskilling, curriculum reform, and strategic hiring.</p>
+<hr />
+<h2>Key Features &amp; Capabilities</h2>
+<h3>1. Global Market Benchmarking</h3>
+<ul>
+<li><strong>Cross-Country Comparison:</strong> Compares skill demand in India against first-world markets to highlight the relative "Skill Deficit" or "Surplus".</li>
+<li><strong>Offshore Detection Logic:</strong> Smartly identifies and isolates offshore/remote roles (e.g., jobs posted in India but serving US/UK time zones) to ensure domestic statistics are not artificially inflated.</li>
+<li><strong>Gap Scoring:</strong> Generates a dynamic 0-100 index representing the divergence between local supply and global demand.</li>
+</ul>
+<h3>2. Generative AI &amp; Retrieval-Augmented Generation (RAG)</h3>
+<ul>
+<li><strong>⚡ PowerBot:</strong> An embedded, context-aware AI analyst powered by the <strong>Groq API (Llama 3)</strong>.</li>
+<li><strong>RAG Engine:</strong> Indexes thousands of jobs and resumes locally, allowing users to query the dashboard via natural language (e.g., <em>"What is the demand for BESS globally?"</em>).</li>
+<li><strong>LLM Resume Parsing:</strong> Utilizes LLMs to extract deeply technical, nuanced skillsets from raw resume text, outperforming traditional keyword matching.</li>
+</ul>
+<h3>3. Automated Data Ingestion</h3>
+<ul>
+<li><strong>Multi-Source Scraper:</strong> Automatically fetches job listings from the Adzuna API, Indeed RSS feeds, and LinkedIn public searches.</li>
+<li><strong>Deduplication &amp; Cleansing:</strong> Ensures high-fidelity data by automatically dropping duplicate postings across platforms.</li>
+</ul>
+<h3>4. Advanced Taxonomy Engine</h3>
+<ul>
+<li>Categorizes hundreds of technical skills into 6 primary domains:<ul>
+<li><em>Traditional Power Engineering</em></li>
+<li><em>Renewables &amp; Energy Transition</em></li>
+<li><em>Digital &amp; Analytics</em></li>
+<li><em>Grid Modernization</em></li>
+<li><em>Project &amp; Commercial</em></li>
+<li><em>Sustainability &amp; Policy</em></li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>Dashboard Modules</h2>
+<p>The user interface is built with <strong>Streamlit</strong> and features interactive <strong>Plotly</strong> visualizations, divided into several analytical modules:</p>
+<ol>
+<li><strong>🏆 Market Demand:</strong> Heatmaps and bar charts detailing the most requested skills by employers.</li>
+<li><strong>🌍 Cross-Country:</strong> Head-to-head comparison of skill demand between India, US, UK, and Australia.</li>
+<li><strong>📊 Demand vs Supply:</strong> Visual mapping of employer requirements vs. actual talent pool capabilities.</li>
+<li><strong>🔍 India Gap:</strong> Deep-dive into the specific skills where India lags behind global benchmarks (e.g., Digital Twin, OT Cybersecurity).</li>
+<li><strong>⚡ Emerging Tech:</strong> Tracks the adoption rate of next-gen technologies (BESS, Green Hydrogen, Smart Meters) across different geographies.</li>
+<li><strong>💡 Recommendations:</strong> Algorithmic business recommendations categorizing interventions into Immediate, Short-term, and Long-term strategies.</li>
+<li><strong>📋 Raw Data:</strong> Transparent view into the underlying job listings and parsed resumes.</li>
+</ol>
+<hr />
+<h2>Technical Architecture</h2>
+<ul>
+<li><strong>Frontend / UI:</strong> Streamlit, CSS (Glassmorphism, Dark-mode aesthetics)</li>
+<li><strong>Visualizations:</strong> Plotly Express &amp; Plotly Graph Objects</li>
+<li><strong>LLM Provider:</strong> Groq Cloud (Llama 3 models)</li>
+<li><strong>Embeddings &amp; Vector Store:</strong> LangChain, HuggingFace Embeddings, FAISS/ChromaDB</li>
+<li><strong>Data Processing:</strong> Pandas, Regex, BeautifulSoup4</li>
+</ul>
+<hr />
+<h2>Setup &amp; Installation</h2>
+<h3>Prerequisites</h3>
+<ul>
+<li>Python 3.10+</li>
+<li>A valid <strong>Groq API Key</strong> (for the AI Chatbot and Resume LLM Parsing)</li>
+<li><em>Optional:</em> Adzuna API App ID and Key (for the scraper)</li>
+</ul>
+<h3>Installation Steps</h3>
+<ol>
+<li>
+<p><strong>Clone the repository and navigate to the directory:</strong>
+   <code>bash
+   git clone &lt;repository_url&gt;
+   cd power-sector-gap-analyzer</code></p>
+</li>
+<li>
+<p><strong>Install dependencies:</strong>
+   <code>bash
+   pip install -r requirements.txt</code>
+   <em>Note: If you plan to parse PDF resumes, ensure <code>pdfplumber</code> is installed: <code>pip install pdfplumber</code></em></p>
+</li>
+<li>
+<p><strong>Run the Data Scraper (Optional):</strong>
+   To fetch fresh job data across multiple countries:
+   <code>bash
+   python scraper.py --country in us gb au de ca</code>
+   This will output a timestamped <code>jobs_YYYYMMDD_HHMMSS.json</code> file.</p>
+</li>
+<li>
+<p><strong>Launch the Dashboard:</strong>
+   <code>bash
+   python -m streamlit run power_sector_dashboard.py</code></p>
+</li>
+<li>
+<p><strong>API Key Configuration:</strong>
+   Once the dashboard loads in your browser, enter your <strong>Groq API Key</strong> in the sidebar to enable the PowerBot chatbot and advanced resume processing.</p>
+</li>
+</ol>
+<hr />
+<h2>Project Structure</h2>
+<ul>
+<li><strong><code>power_sector_dashboard.py</code></strong>: The main Streamlit application and UI logic.</li>
+<li><strong><code>scraper.py</code></strong>: Multi-source data extraction pipeline.</li>
+<li><strong><code>constants.py</code></strong>: Stores the skill taxonomy, geographic mapping, offshore phrases, and fallback demo data.</li>
+<li><strong><code>rag_engine.py</code></strong>: Handles document chunking, embeddings, and vector store operations for the chatbot.</li>
+<li><strong><code>style.css</code></strong>: Custom CSS for premium, dark-mode dashboard aesthetics.</li>
+<li><strong><code>jobs_*.json / csv</code></strong>: Output datasets generated by the scraper.</li>
+</ul>
+</body>
+</html>
