@@ -98,11 +98,11 @@ def get_groq_client():
 
 @st.cache_resource
 def get_rag_engine():
-    try:
-        from rag_engine import RAGEngine
-        return RAGEngine()
-    except Exception as e:
-        print(f"Failed to init RAGEngine: {e}")
+    # try:
+    #     from rag_engine import RAGEngine
+    #     return RAGEngine()
+    # except Exception as e:
+    #     print(f"Failed to init RAGEngine: {e}")
     return None
 
 class ResumeSchema(BaseModel):
